@@ -52,7 +52,7 @@
     }
 }
 
-.enei__button {
+.enei__button, .enei__tool-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -77,5 +77,26 @@
     }
     .caption + .icon {
         margin-left: 8px;
+    }
+}
+
+.enei__toolbar {
+    display: flex;
+    flex-flow: row wrap;
+    padding-left: 2px;
+    margin-top: 4px;
+
+    .enei__tool-button {
+        width: 24px;
+        height: 24px;
+        margin-left: 2px;
+        background: #eaeaea;
+        color: black;
+    }
+
+    .enei__tool-divider {
+        display: block;
+        width: 4px;
+        height: 24px;
     }
 }

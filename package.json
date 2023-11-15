@@ -35,7 +35,9 @@
   },
   "dependencies": {
     "@editorjs/editorjs": "^2.28.2",
-    "@editorjs/header": "^2.8.1"
+    "@editorjs/header": "^2.8.1",
+    "rollup-plugin-copy": "^3.5.0",
+    "roosterjs": "^8.59.0"
   },
   "browserslist": [
     "last 2 versions"
