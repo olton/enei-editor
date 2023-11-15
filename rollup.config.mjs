@@ -3,6 +3,8 @@ import commonjs from '@rollup/plugin-commonjs'
 import terser from '@rollup/plugin-terser'
 import replace from '@rollup/plugin-replace'
 import progress from 'rollup-plugin-progress';
+import postcss from 'rollup-plugin-postcss'
+import autoprefixer from "autoprefixer"
 
 const
     dev = (process.env.NODE_ENV !== 'production'),
@@ -29,6 +31,15 @@ export default [
             }),
             replace({
                 preventAssignment: true,
+            }),
+            postcss({
+                extract: false,
+                minimize: true,
+                use: ['less'],
+                sourceMap: sourcemap,
+                plugins: [
+                    autoprefixer(),
+                ]
             }),
             nodeResolve({
                 browser: true

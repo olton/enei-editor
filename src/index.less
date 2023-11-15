@@ -1,0 +1,81 @@
+:root {
+
+}
+
+*[enei] {
+    border: 1px dashed transparent;
+}
+
+.enei_editor_mode *[enei] {
+    border-color: #468cff;
+}
+
+.enei__overlay {
+    z-index: 100000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.enei__editor {
+    display: flex;
+    position: fixed;
+    flex-flow: column;
+    background: #ffffff;
+
+    .enei__text {
+        //min-height: ~"calc(100% - 48px)";
+        margin: 4px;
+        padding: 4px;
+
+        &[contenteditable=true] {
+            border: 1px solid #acacac;
+            outline: 1px solid #acacac;
+        }
+    }
+
+    .enei__actions {
+        display: flex;
+        flex-flow: row nowrap ;
+        justify-content: start;
+        padding: 0 10px 4px 2px;
+
+        * {
+            margin-left: 2px;
+        }
+    }
+}
+
+.enei__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: 0 8px;
+    font-size: 12px;
+    height: 28px;
+    background-color: #468cff;
+    color: #fff;
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    overflow: visible;
+
+    .icon + .caption {
+        margin-left: 8px;
+    }
+    .caption + .icon {
+        margin-left: 8px;
+    }
+}

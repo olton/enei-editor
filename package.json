@@ -4,6 +4,7 @@
   "description": "The content editor for enei cms",
   "main": "src/index.js",
   "scripts": {
+    "start": "vite",
     "clear": "shx rm -rf dist/* lib/*",
     "build": "npm run clear && npm install && rollup --config",
     "watch": "npm run clear && npm install && rollup --config -w",
@@ -20,15 +21,23 @@
   },
   "homepage": "https://github.com/olton/enei-editor#readme",
   "devDependencies": {
-    "rollup": "^4.4.0",
-    "shx": "^0.3.4",
-    "vite": "^4.5.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup-plugin-progress": "^1.1.2"
+    "autoprefixer": "^10.4.16",
+    "less": "^4.2.0",
+    "rollup": "^4.4.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-progress": "^1.1.2",
+    "shx": "^0.3.4",
+    "vite": "^4.5.0"
   },
   "dependencies": {
-  }
+    "@editorjs/editorjs": "^2.28.2",
+    "@editorjs/header": "^2.8.1"
+  },
+  "browserslist": [
+    "last 2 versions"
+  ]
 }
