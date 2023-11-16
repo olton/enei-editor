@@ -5,7 +5,6 @@ import replace from '@rollup/plugin-replace'
 import progress from 'rollup-plugin-progress';
 import postcss from 'rollup-plugin-postcss'
 import autoprefixer from "autoprefixer"
-import copy from 'rollup-plugin-copy'
 
 const
     dev = (process.env.NODE_ENV !== 'production'),
@@ -46,11 +45,6 @@ export default [
                 browser: true
             }),
             commonjs(),
-            copy({
-                targets: [
-                    {src: './icons/*', dest: './lib'},
-                ]
-            }),
         ],
         output: [
             {

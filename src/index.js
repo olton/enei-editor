@@ -1,13 +1,30 @@
-import * as rjs from "roosterjs"
+import {
+    Editor,
+    ContentEdit,
+    Paste,
+    HyperLink,
+    toggleBold,
+    toggleItalic,
+    toggleUnderline,
+    toggleStrikethrough,
+    toggleListType,
+    setAlignment,
+    toggleBlockQuote,
+    toggleCodeBlock, toggleHeader,
+} from 'roosterjs';
 import "./index.less"
 import "./icons.less"
 
 if (!globalThis.eneiEditorKey) {
-    globalThis.eneiEditorKey = `ctr+alt+k`
+    globalThis.eneiEditorKey = `ctrl+alt+k`
+}
+if (!globalThis.eneiEditorEndpoint) {
+    globalThis.eneiEditorEndpoint = ''
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
 const ENEI_EDITOR_TARGET_CLASS = '[enei]'
+const storage = sessionStorage
 
 const EDITOR_HTML = `
 <div class="enei__toolbar">
@@ -22,6 +39,9 @@ const EDITOR_HTML = `
     <button class="enei__tool-button js-enei-p-left"><span class="ei-paragraph-left"></span></button>
     <button class="enei__tool-button js-enei-p-center"><span class="ei-paragraph-center"></span></button>
     <button class="enei__tool-button js-enei-p-right"><span class="ei-paragraph-right"></span></button>
+    <span class="enei__tool-divider"></span>
+    <button class="enei__tool-button js-enei-quote"><span class="ei-quotes-left"></span></button>
+    <button class="enei__tool-button js-enei-code"><span class="ei-embed2"></span></button>
 </div>
 <div class="enei__text"></div>
 <div class="enei__actions">
@@ -36,10 +56,12 @@ class EneiEditor {
     overlay = null
     content = null
     rjs = null
+    current = null
 
     constructor() {
         this.addEvents()
         this.body = document.querySelector("body")
+        this.restoreBlocks()
     }
 
     createEditor(){
@@ -57,8 +79,8 @@ class EneiEditor {
         this.body.append(this.overlay)
     }
 
-    openEditor(forElement){
-        const self = this
+    openEditor(){
+        const self = this, forElement = this.current
         const content = forElement.innerHTML
         const rect = forElement.getBoundingClientRect()
         this.createOverlay()
@@ -66,76 +88,148 @@ class EneiEditor {
         this.editor.style.top = `${rect.top - 32}px`
         this.editor.style.left = `${rect.left}px`
         this.editor.style.width = `${rect.width}px`
-        this.editor.style.height = `${rect.height + 54}px`
         this.content = this.editor.querySelector(".enei__text")
-        const editor = rjs.createEditor(this.content)
-        editor.setContent(content)
+        const editor = new Editor(this.content, {
+            plugins: [
+                new ContentEdit(),
+                new Paste(true /*useDirectPaste*/),
+                new HyperLink(href => 'Ctrl+click to open link ' + href),
+            ],
+            initialContent: content
+        })
+        // editor.setContent(content)
         this.content.focus()
+        this.editor.style.height = `${this.content.scrollHeight + 70}px`
+
+        const updateEditorHeight = () => {
+            self.editor.style.height = `${this.content.scrollHeight + 70}px`
+        }
+
+        const focus = () => {
+            this.content.focus()
+        }
 
         this.content.addEventListener("input", () => {
-            const h = this.content.scrollHeight + 70
-            self.editor.style.height = `${h}px`
+            updateEditorHeight()
         })
 
-        this.editor.querySelector(".js-enei-cancel").addEventListener("click", () => {
-            this.overlay.remove()
+        const addEvent = (btn, fun) => {
+            this.editor.querySelector(`.js-enei-${btn}`).addEventListener("click", fun)
+        }
+
+        addEvent('cancel', () => {
+            this.closeEditor()
         })
-        this.editor.querySelector(".js-enei-ok").addEventListener("click", () => {
-            forElement.innerHTML = this.content.innerHTML
-            this.overlay.remove()
+
+        addEvent('ok', async () => {
+            await this.saveEditor()
         })
-        this.editor.querySelector(".js-enei-bold").addEventListener("click", () => {
-            rjs.toggleBold(editor)
-            this.content.focus()
+
+        addEvent("bold", () => {
+            toggleBold(editor)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-italic").addEventListener("click", () => {
-            rjs.toggleItalic(editor)
-            this.content.focus()
+
+        addEvent("italic", () => {
+            toggleItalic(editor)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-underline").addEventListener("click", () => {
-            rjs.toggleUnderline(editor)
-            this.content.focus()
+
+        addEvent("underline", () => {
+            toggleUnderline(editor)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-strike").addEventListener("click", () => {
-            rjs.toggleStrikethrough(editor)
-            this.content.focus()
+
+        addEvent("strike", () => {
+            toggleStrikethrough(editor)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-list-num").addEventListener("click", () => {
-            rjs.toggleListType(editor, 1)
-            this.content.focus()
+
+        addEvent("list-num", () => {
+            toggleListType(editor, 1)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-list-def").addEventListener("click", () => {
-            rjs.toggleListType(editor, 2)
-            this.content.focus()
+
+        addEvent("list-def", () => {
+            toggleListType(editor, 2)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-p-left").addEventListener("click", () => {
-            rjs.setAlignment(editor, 0)
-            this.content.focus()
+
+        addEvent("p-left", () => {
+            setAlignment(editor, 0)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-p-center").addEventListener("click", () => {
-            rjs.setAlignment(editor, 1)
-            this.content.focus()
+
+        addEvent("p-center", () => {
+            setAlignment(editor, 1)
+            focus()
+            updateEditorHeight()
         })
-        this.editor.querySelector(".js-enei-p-right").addEventListener("click", () => {
-            rjs.setAlignment(editor, 2)
-            this.content.focus()
+
+        addEvent("p-right", () => {
+            setAlignment(editor, 2)
+            focus()
+            updateEditorHeight()
         })
+
+        addEvent("quote", () => {
+            toggleBlockQuote(editor)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("code", () => {
+            toggleCodeBlock(editor)
+            focus()
+            updateEditorHeight()
+        })
+    }
+
+    async saveEditor(){
+        const newContent = this.content.innerHTML
+        const forElement = this.current
+        forElement.innerHTML = newContent
+        await this.commitBlock(forElement.getAttribute('enei'), newContent)
+        this.overlay.remove()
+    }
+
+    closeEditor(){
+        this.overlay.remove()
     }
 
     addEvents(){
         const self = this
 
-        window.addEventListener("keydown", function(event){
+        window.addEventListener("keydown", async function(event){
             if (event.repeat) return
 
             const keys = []
 
-            if (event.ctrlKey || event.metaKey) keys.push('ctr')
+            if (event.ctrlKey || event.metaKey) keys.push('ctrl')
             if (event.altKey) keys.push('alt')
             if (event.shiftKey) keys.push('shift')
             if (event.key) keys.push(event.key)
 
-            if ( eneiEditorKey === keys.join("+") ) {
+            const keySeq = keys.join("+")
+
+            console.log(keySeq)
+
+            if ( "ctrl+Enter" === keySeq && self.editor) {
+                await self.saveEditor()
+            }
+
+            if ( "Escape" === keySeq && self.editor) {
+                self.closeEditor()
+            }
+
+            if ( eneiEditorKey === keySeq ) {
                 self.switchMode()
             }
         })
@@ -144,7 +238,8 @@ class EneiEditor {
 
         const clickHandler = function(event) {
             if(!self.inEditMode()) return
-            self.openEditor(this)
+            self.current = this
+            self.openEditor()
         }
 
         elements.forEach(el => {
@@ -158,6 +253,69 @@ class EneiEditor {
 
     inEditMode(){
         return this.body.classList.contains(ENEI_EDITOR_MODE_CLASS)
+    }
+
+    async commitBlock(id, content){
+        const command = 'commit-block'
+        const res = await fetch(`${eneiEditorEndpoint}/${command}`, {
+            method: "POST",
+            body: JSON.stringify({
+                id,
+                content
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+        if (!res.ok) {
+            alert(`Block not committed!`)
+            return
+        }
+
+        this.saveBlock(id, content)
+    }
+
+    saveBlocks(){
+        const data = {}
+        const blocks = document.querySelectorAll(ENEI_EDITOR_TARGET_CLASS)
+        blocks.forEach(el => {
+            const id = el.getAttribute("enei")
+            data[id] = el.innerHTML.trim()
+        })
+        storage.setItem('ENEI', JSON.stringify(data))
+    }
+
+    restoreBlocks(){
+        let data = storage.getItem('ENEI')
+        if (!data) {
+            return
+        }
+        data = JSON.parse(data)
+        for(let id in data) {
+            const el = document.querySelector(`[enei=${id}]`)
+            el.innerHTML = data[id]
+        }
+    }
+
+    restoreBlock(id){
+        let data = storage.getItem('ENEI')
+        if (!data) {
+            return
+        }
+        const el = document.querySelector(`[enei=${id}]`)
+        el.innerHTML = JSON.parse(data)[id]
+    }
+
+    saveBlock(id, content){
+        let data = storage.getItem('ENEI')
+        if (!data) {
+            data = {}
+        } else {
+            data = JSON.parse(data)
+        }
+
+        data[id] = content.trim()
+        storage.setItem('ENEI', data)
     }
 }
 
