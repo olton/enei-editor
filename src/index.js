@@ -3,6 +3,7 @@ import {
     ContentEdit,
     Paste,
     HyperLink,
+    ImageEdit,
     toggleBold,
     toggleItalic,
     toggleUnderline,
@@ -10,55 +11,120 @@ import {
     toggleListType,
     setAlignment,
     toggleBlockQuote,
-    toggleCodeBlock, toggleHeader,
+    toggleCodeBlock,
+    setDirection,
+    clearFormat, toggleSuperscript, toggleSubscript, setIndentation,
+    createElement,
+    insertImage,
+    getFormatState,
 } from 'roosterjs';
+
 import "./index.less"
 import "./icons.less"
 
-if (!globalThis.eneiEditorKey) {
-    globalThis.eneiEditorKey = `ctrl+alt+k`
+const isObject = item => (item && typeof item === 'object' && !Array.isArray(item))
+const merge = (target, ...sources) => {
+    if (!sources.length) return target;
+    const source = sources.shift();
+
+    if (isObject(target) && isObject(source)) {
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!target[key]) Object.assign(target, { [key]: {} });
+                merge(target[key], source[key]);
+            } else {
+                Object.assign(target, { [key]: source[key] });
+            }
+        }
+    }
+
+    return merge(target, ...sources);
 }
-if (!globalThis.eneiEditorEndpoint) {
-    globalThis.eneiEditorEndpoint = ''
+
+const EditorDefaultOptions = {
+    shortcut: "alt+ctrl+k",
+    serverEndpoint: 'localhost',
+    maxHeight: 300
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
 const ENEI_EDITOR_TARGET_CLASS = '[enei]'
 const storage = sessionStorage
 
+const DLG_LINK = `
+<dialog id="enei-dialog-link" class="enei-editor js-enei-dialog-link">
+    <form method="dialog">
+        <div>
+            <label>Web Address (URL)</label>
+            <input type="url" name="enei-dialog-link__url">
+        </div>
+        <div>
+            <label>Display as</label>
+            <input type="url" name="enei-dialog-link__display">
+        </div>
+        <div class="enei-dialog__actions">
+            <button class="enei__button">OK</button>
+            <button class="enei__button" type="button">Cancel</button>
+        </div>
+    </form>
+</dialog>
+`
+
 const EDITOR_HTML = `
+${DLG_LINK}
 <div class="enei__toolbar">
-    <button class="enei__tool-button js-enei-bold"><span class="ei-bold"></span></button>
-    <button class="enei__tool-button js-enei-italic"><span class="ei-italic"></span></button>
-    <button class="enei__tool-button js-enei-underline"><span class="ei-underline"></span></button>
-    <button class="enei__tool-button js-enei-strike"><span class="ei-strike"></span></button>
-    <span class="enei__tool-divider"></span>
-    <button class="enei__tool-button js-enei-list-num"><span class="ei-list1"></span></button>
-    <button class="enei__tool-button js-enei-list-def"><span class="ei-list2"></span></button>
-    <span class="enei__tool-divider"></span>
-    <button class="enei__tool-button js-enei-p-left"><span class="ei-paragraph-left"></span></button>
-    <button class="enei__tool-button js-enei-p-center"><span class="ei-paragraph-center"></span></button>
-    <button class="enei__tool-button js-enei-p-right"><span class="ei-paragraph-right"></span></button>
-    <span class="enei__tool-divider"></span>
-    <button class="enei__tool-button js-enei-quote"><span class="ei-quotes-left"></span></button>
-    <button class="enei__tool-button js-enei-code"><span class="ei-embed2"></span></button>
+    <button class="enei__tool-button js-enei-bold" title="Bold"><span class="ei-bold"></span></button>
+    <button class="enei__tool-button js-enei-italic" title="Italic"><span class="ei-italic"></span></button>
+    <button class="enei__tool-button js-enei-underline" title="Underline"><span class="ei-underline"></span></button>
+    <button class="enei__tool-button js-enei-strike" title="Strike"><span class="ei-strike"></span></button>
+
+    <button class="enei__tool-button js-enei-superscript" title="Superscript"><span class="ei-superscript"></span></button>
+    <button class="enei__tool-button js-enei-subscript" title="Subscript"><span class="ei-subscript"></span></button>
+
+    <button class="enei__tool-button js-enei-list-num" title="Numbered List"><span class="ei-list1"></span></button>
+    <button class="enei__tool-button js-enei-list-bull" title="Bulleted List"><span class="ei-list2"></span></button>
+
+    <button class="enei__tool-button js-enei-p-left" title="Align Left"><span class="ei-paragraph-left"></span></button>
+    <button class="enei__tool-button js-enei-p-center" title="Align Center"><span class="ei-paragraph-center"></span></button>
+    <button class="enei__tool-button js-enei-p-right" title="Align Right"><span class="ei-paragraph-right"></span></button>
+
+    <button class="enei__tool-button js-enei-link" title="Insert Link"><span class="ei-link"></span></button>
+    <button class="enei__tool-button js-enei-image" title="Insert Image"><span class="ei-image"></span></button>
+    <button class="enei__tool-button js-enei-quote" title="Quoted text"><span class="ei-quotes-right"></span></button>
+    <button class="enei__tool-button js-enei-code" title="Code"><span class="ei-embed"></span></button>
+
+    <button class="enei__tool-button js-enei-indent-increase" title="Increase Indent"><span class="ei-indent-increase"></span></button>
+    <button class="enei__tool-button js-enei-indent-decrease" title="Decrease Indent"><span class="ei-indent-decrease"></span></button>
+
+    <button class="enei__tool-button js-enei-ltr" title="LTR Text"><span class="ei-ltr"></span></button>
+    <button class="enei__tool-button js-enei-rtl" title="RTL Text"><span class="ei-rtl"></span></button>
+
+    <button class="enei__tool-button js-enei-clear-format" title="Clear Format"><span class="ei-paint-format"></span></button>
+
+    <button class="enei__tool-button js-enei-undo" title="Undo Operation"><span class="ei-undo"></span></button>
+    <button class="enei__tool-button js-enei-redo" title="Redo Operation"><span class="ei-redo"></span></button>
+
 </div>
 <div class="enei__text"></div>
 <div class="enei__actions">
-    <button class="enei__button js-enei-ok">OK</button>
+    <button class="enei__button js-enei-ok">Save</button>
     <button class="enei__button js-enei-cancel">Cancel</button>
+    <a href="https://github.com/olton/enei-editor" target="_blank" class="enei__button js-enei-github" style="background-color: transparent; margin-left: auto"><span class="ei-github"></span></a>
 </div>
 `
 
-class EneiEditor {
+export class EneiEditor {
     body = null
+    editorContainer = null
     editor = null
     overlay = null
     content = null
-    rjs = null
     current = null
+    toolbar = null
+    options = {}
 
-    constructor() {
+    constructor(options) {
+        this.options = merge({}, EditorDefaultOptions, options)
         this.addEvents()
         this.body = document.querySelector("body")
         this.restoreBlocks()
@@ -66,10 +132,10 @@ class EneiEditor {
 
     createEditor(){
         console.log("Create Editor")
-        this.editor = document.createElement("div")
-        this.editor.className = 'enei__editor'
-        this.editor.innerHTML = EDITOR_HTML
-        this.overlay.append(this.editor)
+        this.editorContainer = document.createElement("div")
+        this.editorContainer.className = 'enei__editor'
+        this.editorContainer.innerHTML = EDITOR_HTML
+        this.overlay.append(this.editorContainer)
     }
 
     createOverlay(){
@@ -77,45 +143,104 @@ class EneiEditor {
         this.overlay = document.createElement("div")
         this.overlay.classList.add("enei__overlay")
         this.body.append(this.overlay)
+        this.overlay.addEventListener('wheel', e => {
+            e.preventDefault()
+            e.stopPropagation()
+        }, {passive: true})
     }
 
     openEditor(){
-        const self = this, forElement = this.current
+        const self = this, o = this.options, forElement = this.current
         const content = forElement.innerHTML
         const rect = forElement.getBoundingClientRect()
         this.createOverlay()
         this.createEditor()
-        this.editor.style.top = `${rect.top - 32}px`
-        this.editor.style.left = `${rect.left}px`
-        this.editor.style.width = `${rect.width}px`
-        this.content = this.editor.querySelector(".enei__text")
-        const editor = new Editor(this.content, {
+        this.content = this.editorContainer.querySelector(".enei__text")
+        this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
+        this.editorContainer.style.top = `${rect.top - 56}px`
+        this.editorContainer.style.left = `${rect.left}px`
+        this.editorContainer.style.width = `${rect.width}px`
+        this.editorContainer.style.maxHeight = `${o.maxHeight}px`
+        this.editor = new Editor(this.content, {
             plugins: [
                 new ContentEdit(),
                 new Paste(true /*useDirectPaste*/),
                 new HyperLink(href => 'Ctrl+click to open link ' + href),
+                new ImageEdit(),
             ],
-            initialContent: content
+            initialContent: content,
         })
-        // editor.setContent(content)
-        this.content.focus()
-        this.editor.style.height = `${this.content.scrollHeight + 70}px`
 
         const updateEditorHeight = () => {
-            self.editor.style.height = `${this.content.scrollHeight + 70}px`
+            self.editorContainer.style.height = `${this.content.height + this.toolbar.scrollHeight + 70}px`
         }
+
+        const updateButtonState = editorState => {
+            /*
+            * {
+                "isMultilineSelection": false,
+                "headingLevel": 0,
+                "headerLevel": 0,
+                "canUnlink": false,
+                "canAddImageAltText": false,
+                "isInTable": false,
+                "tableFormat": {},
+                "canMergeTableCell": false,
+                "fontName": "-apple-system, system-ui, BlinkMacSystemFont, \"Segoe UI\", Roboto, Ubuntu, \"Helvetica Neue\", sans-serif",
+                "fontSize": "12pt",
+                "textColor": "rgb(0, 0, 0)",
+                "backgroundColor": "rgb(255, 255, 255)",
+                "lineHeight": "24px",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "fontWeight": "400",
+                "isDarkMode": false,
+                "zoomScale": 1
+            }
+            * */
+            const button = name => this.toolbar.querySelector(`.js-enei-${name}`)
+            const setButtonState = (name, state) => button(name).classList[state ? 'add' : 'remove']('active')
+
+            const {isBold, isItalic, isUnderline, isStrikeThrough, isSubscript, isSuperscript, isBlockQuote,
+            isCodeInline, isCodeBlock, direction, canUndo, canRedo, textAlign, isBullet, isNumbering} = editorState
+
+            setButtonState('bold', isBold)
+            setButtonState('italic', isItalic)
+            setButtonState('underline', isUnderline)
+            setButtonState('strike', isStrikeThrough)
+            setButtonState('subscript', isSubscript)
+            setButtonState('superscript', isSuperscript)
+            setButtonState('quote', isBlockQuote)
+            setButtonState('code', isCodeBlock || isCodeInline)
+            setButtonState('ltr', direction === 'ltr')
+            setButtonState('rtl', direction === 'rtl')
+            setButtonState('undo', canUndo)
+            setButtonState('redo', canRedo)
+            setButtonState('p-left', ['start', 'left'].includes(textAlign))
+            setButtonState('p-center', textAlign === 'center')
+            setButtonState('p-right', ['end', 'right'].includes(textAlign))
+            setButtonState('list-num', isNumbering)
+            setButtonState('list-bull', isBullet)
+        }
+
+        ;["keydown", "input", "click"].forEach( ev => {
+            this.content.addEventListener(ev, () => {updateButtonState(getFormatState(this.editor))})
+        })
+
+        this.content.focus()
+        updateEditorHeight()
+        updateButtonState(getFormatState(this.editor))
 
         const focus = () => {
             this.content.focus()
+            updateButtonState(getFormatState(this.editor))
         }
 
         this.content.addEventListener("input", () => {
             updateEditorHeight()
         })
 
-        const addEvent = (btn, fun) => {
-            this.editor.querySelector(`.js-enei-${btn}`).addEventListener("click", fun)
-        }
+        const addEvent = (btn, fun) => {this.editorContainer.querySelector(`.js-enei-${btn}`).addEventListener("click", fun)}
 
         addEvent('cancel', () => {
             this.closeEditor()
@@ -126,67 +251,156 @@ class EneiEditor {
         })
 
         addEvent("bold", () => {
-            toggleBold(editor)
+            toggleBold(this.editor)
             focus()
             updateEditorHeight()
         })
 
         addEvent("italic", () => {
-            toggleItalic(editor)
+            toggleItalic(this.editor)
             focus()
             updateEditorHeight()
         })
 
         addEvent("underline", () => {
-            toggleUnderline(editor)
+            toggleUnderline(this.editor)
             focus()
             updateEditorHeight()
         })
 
         addEvent("strike", () => {
-            toggleStrikethrough(editor)
+            toggleStrikethrough(this.editor)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("superscript", () => {
+            toggleSuperscript(this.editor)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("subscript", () => {
+            toggleSubscript(this.editor)
             focus()
             updateEditorHeight()
         })
 
         addEvent("list-num", () => {
-            toggleListType(editor, 1)
+            toggleListType(this.editor, 1)
             focus()
             updateEditorHeight()
         })
 
-        addEvent("list-def", () => {
-            toggleListType(editor, 2)
+        addEvent("list-bull", () => {
+            toggleListType(this.editor, 2)
             focus()
             updateEditorHeight()
         })
 
         addEvent("p-left", () => {
-            setAlignment(editor, 0)
+            setAlignment(this.editor, 0)
             focus()
             updateEditorHeight()
         })
 
         addEvent("p-center", () => {
-            setAlignment(editor, 1)
+            setAlignment(this.editor, 1)
             focus()
             updateEditorHeight()
         })
 
         addEvent("p-right", () => {
-            setAlignment(editor, 2)
+            setAlignment(this.editor, 2)
             focus()
             updateEditorHeight()
         })
 
         addEvent("quote", () => {
-            toggleBlockQuote(editor)
+            toggleBlockQuote(this.editor)
             focus()
             updateEditorHeight()
         })
 
         addEvent("code", () => {
-            toggleCodeBlock(editor)
+            toggleCodeBlock(this.editor)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("indent-increase", () => {
+            setIndentation(this.editor, 0)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("indent-decrease", () => {
+            setIndentation(this.editor, 1)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("undo", () => {
+            this.editor.undo()
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("redo", () => {
+            this.editor.redo()
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("ltr", () => {
+            setDirection(this.editor, 0)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("rtl", () => {
+            setDirection(this.editor, 1)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("clear-format", () => {
+            clearFormat(this.editor, 0)
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("link", () => {
+            const dlg = document.querySelector("#enei-dialog-link")
+            dlg.showModal()
+            focus()
+            updateEditorHeight()
+        })
+
+        addEvent("image", () => {
+            const document = this.editor.getDocument()
+            const fileInput = createElement({
+                tag: "input",
+                attributes: {
+                    type: "file",
+                    accept: "image/*",
+                    display: "none"
+                }
+            }, this.editor.getDocument())
+            document.body.appendChild(fileInput)
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files) {
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        insertImage(this.editor, fileInput.files[i]);
+                    }
+                }
+            })
+            try {
+                fileInput.click()
+            } finally {
+                document.body.removeChild(fileInput)
+            }
+
             focus()
             updateEditorHeight()
         })
@@ -197,29 +411,30 @@ class EneiEditor {
         const forElement = this.current
         forElement.innerHTML = newContent
         await this.commitBlock(forElement.getAttribute('enei'), newContent)
-        this.overlay.remove()
+        this.closeEditor()
     }
 
     closeEditor(){
+        this.editor.dispose()
         this.overlay.remove()
     }
 
     addEvents(){
-        const self = this
+        const self = this, o = this.options
 
         window.addEventListener("keydown", async function(event){
             if (event.repeat) return
 
             const keys = []
 
-            if (event.ctrlKey || event.metaKey) keys.push('ctrl')
             if (event.altKey) keys.push('alt')
+            if (event.ctrlKey || event.metaKey) keys.push('ctrl')
             if (event.shiftKey) keys.push('shift')
             if (event.key) keys.push(event.key)
 
             const keySeq = keys.join("+")
 
-            console.log(keySeq)
+            console.log("You pressed: "+ keySeq)
 
             if ( "ctrl+Enter" === keySeq && self.editor) {
                 await self.saveEditor()
@@ -229,9 +444,11 @@ class EneiEditor {
                 self.closeEditor()
             }
 
-            if ( eneiEditorKey === keySeq ) {
+            if ( o.shortcut === keySeq ) {
                 self.switchMode()
             }
+
+            // event.preventDefault()
         })
 
         const elements = document.querySelectorAll(ENEI_EDITOR_TARGET_CLASS)
@@ -256,13 +473,13 @@ class EneiEditor {
     }
 
     async commitBlock(id, content){
-        const command = 'commit-block'
-        const res = await fetch(`${eneiEditorEndpoint}/${command}`, {
+        const {serverEndpoint} = this.options
+        const res = await fetch(`${serverEndpoint}/commit-blocks`, {
             method: "POST",
-            body: JSON.stringify({
+            body: JSON.stringify([{
                 id,
                 content
-            }),
+            }]),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -319,4 +536,4 @@ class EneiEditor {
     }
 }
 
-new EneiEditor()
+export const createEneiEditor = (options) => new EneiEditor(options)
