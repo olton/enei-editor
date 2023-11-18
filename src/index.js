@@ -18,7 +18,7 @@ import {
     insertImage,
     getFormatState,
     createLink, removeLink,
-
+    setHeadingLevel,
 } from 'roosterjs';
 
 import "./index.less"
@@ -45,8 +45,8 @@ const merge = (target, ...sources) => {
 
 const EditorDefaultOptions = {
     shortcut: "alt+ctrl+k",
-    serverEndpoint: 'localhost',
-    maxHeight: 300
+    serverEndpoint: '',
+    maxHeight: 300,
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
@@ -90,6 +90,20 @@ ${DLG_LINK}
 
     <button class="enei__tool-button js-enei-list-num" title="Numbered List"><span class="ei-list1"></span></button>
     <button class="enei__tool-button js-enei-list-bull" title="Bulleted List"><span class="ei-list2"></span></button>
+    
+    <div class="enei__dropdown">
+        <button class="enei__tool-button js-enei-heading" title="Heading">R</button>
+        <ul>
+            <li value="1">Heading 1</li>
+            <li value="2">Heading 2</li>
+            <li value="3">Heading 3</li>
+            <li value="4">Heading 4</li>
+            <li value="5">Heading 5</li>
+            <li value="6">Heading 6</li>
+            <li class="divider"></li>
+            <li value="0">Regular Text</li>
+        </ul>
+    </div>
 
     <button class="enei__tool-button js-enei-p-left" title="Align Left"><span class="ei-paragraph-left"></span></button>
     <button class="enei__tool-button js-enei-p-center" title="Align Center"><span class="ei-paragraph-center"></span></button>
@@ -119,7 +133,7 @@ ${DLG_LINK}
     <button class="enei__button js-enei-ok">Save</button>
     <button class="enei__button js-enei-cancel">Cancel</button>
     <div style="margin-left: auto;">
-        <span style="font-size: 10px;">v0.1.2</span>
+        <span style="font-size: 10px;">v0.1.3</span>
         <a href="https://github.com/olton/enei-editor" target="_blank" class="enei__button js-enei-github" style="background-color: transparent;"><span class="ei-github"></span></a>
     </div>
 </div>
@@ -196,7 +210,6 @@ export class EneiEditor {
                 "isMultilineSelection": false,
                 "headingLevel": 0,
                 "headerLevel": 0,
-                "canUnlink": false,
                 "canAddImageAltText": false,
                 "isInTable": false,
                 "tableFormat": {},
@@ -217,7 +230,7 @@ export class EneiEditor {
             const setButtonState = (name, state) => button(name).classList[state ? 'add' : 'remove']('active')
 
             const {isBold, isItalic, isUnderline, isStrikeThrough, isSubscript, isSuperscript, isBlockQuote,
-            isCodeInline, isCodeBlock, direction, canUndo, canRedo, textAlign, isBullet, isNumbering, canUnlink} = editorState
+            isCodeInline, isCodeBlock, direction, canUndo, canRedo, textAlign, isBullet, isNumbering, canUnlink, headingLevel, headerLevel} = editorState
 
             setButtonState('bold', isBold)
             setButtonState('italic', isItalic)
@@ -238,6 +251,8 @@ export class EneiEditor {
             setButtonState('list-bull', isBullet)
 
             button('unlink').disabled = !canUnlink
+
+            button('heading').innerHTML = headingLevel > 0 ? `H${headingLevel}` : "R"
         }
 
         ;["keyup", "mouseup", "input", "click", "contentchanged"].forEach( ev => {
@@ -266,6 +281,20 @@ export class EneiEditor {
 
         addEvent('ok', async () => {
             await this.saveEditor()
+        })
+
+        addEvent('heading', (e) => {
+            const btn = e.target
+            btn.classList.toggle('active')
+        })
+
+        this.toolbar.querySelectorAll(".js-enei-heading + ul > li").forEach(el => {
+            el.addEventListener("click", () => {
+                const level = +el.getAttribute('value')
+                setHeadingLevel(this.editor, level)
+                this.toolbar.querySelector(`.js-enei-heading`).classList.remove("active")
+                focus()
+            })
         })
 
         addEvent("bold", () => {
@@ -434,7 +463,8 @@ export class EneiEditor {
         const newContent = this.content.innerHTML
         const forElement = this.current
         forElement.innerHTML = newContent
-        const result = await this.commitBlock(forElement.getAttribute('enei'), newContent)
+        const id = forElement.getAttribute('enei')
+        const result = this.options.serverEndpoint ? await this.commitBlock(id, newContent) : id
         if (!result) {
             this.current.innerHTML = this.originalContent
         }

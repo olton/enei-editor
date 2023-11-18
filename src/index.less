@@ -2,6 +2,14 @@
 
 }
 
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    src: url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu72xKOzY.woff2) format('woff2');
+    unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
 *[enei] {
     border: 1px dashed transparent;
 }
@@ -21,6 +29,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: "Roboto", serif;
+    box-sizing: border-box;
+
+    * {
+        box-sizing: border-box;
+    }
 }
 
 .enei__editor {
@@ -133,5 +147,45 @@
     }
     menu {
         margin-top: 10px;
+    }
+}
+
+.enei__dropdown {
+    position: relative;
+
+    ul {
+        list-style: none inside;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        background: #fff;
+        margin: 0;
+        padding: 4px;
+        border: 1px solid #efefef;
+        box-shadow: 4px 4px 10px rgba(0,0,0,.4);
+        display: none;
+
+        li {
+            white-space: nowrap;
+            display: flex;
+            font-size: 14px;
+            padding: 4px 8px;
+            cursor: pointer;
+
+            &:hover {
+                background: #eeeeee;
+            }
+
+            &.divider {
+                height: 1px;
+                width: 100%;
+                background: #efefef;
+                padding: 0;
+            }
+        }
+    }
+
+    button.active + ul {
+        display: block;
     }
 }
