@@ -18,6 +18,7 @@ import {
     insertImage,
     getFormatState,
     createLink, removeLink,
+
 } from 'roosterjs';
 
 import "./index.less"
@@ -110,6 +111,7 @@ ${DLG_LINK}
 
     <button class="enei__tool-button js-enei-undo" title="Undo Operation"><span class="ei-undo"></span></button>
     <button class="enei__tool-button js-enei-redo" title="Redo Operation"><span class="ei-redo"></span></button>
+    <button class="enei__tool-button js-enei-revert" title="Revert Content"><span class="ei-revert"></span></button>
 
 </div>
 <div class="enei__text"></div>
@@ -129,6 +131,7 @@ export class EneiEditor {
     current = null
     toolbar = null
     options = {}
+    originalContent = null
 
     constructor(options) {
         this.options = merge({}, EditorDefaultOptions, options)
@@ -158,10 +161,10 @@ export class EneiEditor {
 
     openEditor(){
         const self = this, o = this.options, forElement = this.current
-        const content = forElement.innerHTML
         const rect = forElement.getBoundingClientRect()
         this.createOverlay()
         this.createEditor()
+        this.originalContent = forElement.innerHTML
         this.linkDialog = document.querySelector("#enei-dialog-link")
         this.content = this.editorContainer.querySelector(".enei__text")
         this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
@@ -176,7 +179,7 @@ export class EneiEditor {
                 new HyperLink(href => 'Ctrl+click to open link ' + href),
                 new ImageEdit(),
             ],
-            initialContent: content,
+            initialContent: this.originalContent,
         })
 
         const updateEditorHeight = () => {
@@ -243,6 +246,7 @@ export class EneiEditor {
 
         const focus = () => {
             this.content.focus()
+            updateEditorHeight()
             updateButtonState(getFormatState(this.editor))
         }
 
@@ -263,134 +267,112 @@ export class EneiEditor {
         addEvent("bold", () => {
             toggleBold(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("italic", () => {
             toggleItalic(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("underline", () => {
             toggleUnderline(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("strike", () => {
             toggleStrikethrough(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("superscript", () => {
             toggleSuperscript(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("subscript", () => {
             toggleSubscript(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("list-num", () => {
             toggleListType(this.editor, 1)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("list-bull", () => {
             toggleListType(this.editor, 2)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("p-left", () => {
             setAlignment(this.editor, 0)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("p-center", () => {
             setAlignment(this.editor, 1)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("p-right", () => {
             setAlignment(this.editor, 2)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("quote", () => {
             toggleBlockQuote(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("code", () => {
             toggleCodeBlock(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("indent-increase", () => {
             setIndentation(this.editor, 0)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("indent-decrease", () => {
             setIndentation(this.editor, 1)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("undo", () => {
             this.editor.undo()
             focus()
-            updateEditorHeight()
         })
 
         addEvent("redo", () => {
             this.editor.redo()
             focus()
-            updateEditorHeight()
         })
 
         addEvent("ltr", () => {
             setDirection(this.editor, 0)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("rtl", () => {
             setDirection(this.editor, 1)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("clear-format", () => {
             clearFormat(this.editor, 0)
             focus()
-            updateEditorHeight()
         })
 
         addEvent('unlink', () => {
             removeLink(this.editor)
             focus()
-            updateEditorHeight()
         })
 
         addEvent("link", () => {
             this.linkDialog.querySelector('[name=enei-dialog-link__display]').value = this.editor.getSelectionRange()
             this.linkDialog.showModal()
             focus()
-            updateEditorHeight()
         })
 
         this.linkDialog.querySelector(".js-enei-dialog-link__button-cancel").addEventListener("click", () => {
@@ -437,7 +419,10 @@ export class EneiEditor {
             }
 
             focus()
-            updateEditorHeight()
+        })
+
+        addEvent('revert', () => {
+            this.editor.setContent(this.originalContent)
         })
     }
 
@@ -445,7 +430,10 @@ export class EneiEditor {
         const newContent = this.content.innerHTML
         const forElement = this.current
         forElement.innerHTML = newContent
-        await this.commitBlock(forElement.getAttribute('enei'), newContent)
+        const result = await this.commitBlock(forElement.getAttribute('enei'), newContent)
+        if (!result) {
+            this.current.innerHTML = this.originalContent
+        }
         this.closeEditor()
     }
 
@@ -521,12 +509,14 @@ export class EneiEditor {
         })
         if (!res.ok) {
             alert(`Block not committed!`)
-            return
+            return null
         }
         const result = await res.json()
         if (result.includes(id)) {
             this.saveBlock(id, content)
+            return id
         }
+        return null
     }
 
     saveBlocks(){

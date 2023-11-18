@@ -1,2 +1,5 @@
-import * as EneiEditor from "../dist/enei-editor.esm"
-import "./index.less"
+// import "./index.less"
+
+eneiEditor.createEneiEditor({
+    shortcut: "alt+ctrl+e"
+})
