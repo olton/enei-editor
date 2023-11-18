@@ -19,4 +19,9 @@ createEneiEditor({
 })
 ```
 
+or use a precompiled version directly in browser
+```html
+<script src="https://cdn.jsdelivr.net/gh/olton/enei-editor@0.1.0/lib/enei-editor.js"></script>
+```
+
 Copyright 2023 by [Serhii Pimenov](https://pimenov.com.ua). Licensed Under MIT license.
