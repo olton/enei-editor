@@ -17,6 +17,7 @@ import {
     createElement,
     insertImage,
     getFormatState,
+    createLink, removeLink,
 } from 'roosterjs';
 
 import "./index.less"
@@ -52,20 +53,25 @@ const ENEI_EDITOR_TARGET_CLASS = '[enei]'
 const storage = sessionStorage
 
 const DLG_LINK = `
-<dialog id="enei-dialog-link" class="enei-editor js-enei-dialog-link">
+<dialog id="enei-dialog-link" class="enei-dialog js-enei-dialog-link">
     <form method="dialog">
-        <div>
-            <label>Web Address (URL)</label>
-            <input type="url" name="enei-dialog-link__url">
-        </div>
-        <div>
-            <label>Display as</label>
-            <input type="url" name="enei-dialog-link__display">
-        </div>
-        <div class="enei-dialog__actions">
-            <button class="enei__button">OK</button>
-            <button class="enei__button" type="button">Cancel</button>
-        </div>
+        <header>
+            <h3>Create Link</h3>        
+        </header>
+        <main>    
+            <div>
+                <label>Web Address (URL)</label>
+                <input type="url" name="enei-dialog-link__url">
+            </div>
+            <div>
+                <label>Display as</label>
+                <input type="text" name="enei-dialog-link__display">
+            </div>
+        </main>
+        <menu>
+            <button class="enei__button js-enei-dialog-link__button-ok" type="submit" value="ok">OK</button>
+            <button class="enei__button js-enei-dialog-link__button-cancel" type="reset" value="cancel">Cancel</button>
+        </menu>
     </form>
 </dialog>
 `
@@ -89,6 +95,7 @@ ${DLG_LINK}
     <button class="enei__tool-button js-enei-p-right" title="Align Right"><span class="ei-paragraph-right"></span></button>
 
     <button class="enei__tool-button js-enei-link" title="Insert Link"><span class="ei-link"></span></button>
+    <button class="enei__tool-button js-enei-unlink" title="Remove Link"><span class="ei-switch"></span></button>
     <button class="enei__tool-button js-enei-image" title="Insert Image"><span class="ei-image"></span></button>
     <button class="enei__tool-button js-enei-quote" title="Quoted text"><span class="ei-quotes-right"></span></button>
     <button class="enei__tool-button js-enei-code" title="Code"><span class="ei-embed"></span></button>
@@ -155,6 +162,7 @@ export class EneiEditor {
         const rect = forElement.getBoundingClientRect()
         this.createOverlay()
         this.createEditor()
+        this.linkDialog = document.querySelector("#enei-dialog-link")
         this.content = this.editorContainer.querySelector(".enei__text")
         this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
         this.editorContainer.style.top = `${rect.top - 56}px`
@@ -202,7 +210,7 @@ export class EneiEditor {
             const setButtonState = (name, state) => button(name).classList[state ? 'add' : 'remove']('active')
 
             const {isBold, isItalic, isUnderline, isStrikeThrough, isSubscript, isSuperscript, isBlockQuote,
-            isCodeInline, isCodeBlock, direction, canUndo, canRedo, textAlign, isBullet, isNumbering} = editorState
+            isCodeInline, isCodeBlock, direction, canUndo, canRedo, textAlign, isBullet, isNumbering, canUnlink} = editorState
 
             setButtonState('bold', isBold)
             setButtonState('italic', isItalic)
@@ -221,9 +229,11 @@ export class EneiEditor {
             setButtonState('p-right', ['end', 'right'].includes(textAlign))
             setButtonState('list-num', isNumbering)
             setButtonState('list-bull', isBullet)
+
+            button('unlink').disabled = !canUnlink
         }
 
-        ;["keydown", "input", "click"].forEach( ev => {
+        ;["keyup", "mouseup", "input", "click", "contentchanged"].forEach( ev => {
             this.content.addEventListener(ev, () => {updateButtonState(getFormatState(this.editor))})
         })
 
@@ -370,11 +380,36 @@ export class EneiEditor {
             updateEditorHeight()
         })
 
-        addEvent("link", () => {
-            const dlg = document.querySelector("#enei-dialog-link")
-            dlg.showModal()
+        addEvent('unlink', () => {
+            removeLink(this.editor)
             focus()
             updateEditorHeight()
+        })
+
+        addEvent("link", () => {
+            this.linkDialog.querySelector('[name=enei-dialog-link__display]').value = this.editor.getSelectionRange()
+            this.linkDialog.showModal()
+            focus()
+            updateEditorHeight()
+        })
+
+        this.linkDialog.querySelector(".js-enei-dialog-link__button-cancel").addEventListener("click", () => {
+            this.linkDialog.close();
+        })
+
+        this.linkDialog.addEventListener("close", () => {
+            if (this.linkDialog.returnValue !== "ok") {
+                return
+            }
+            let link = this.linkDialog.querySelector('[name=enei-dialog-link__url]').value.trim()
+            let display = this.linkDialog.querySelector('[name=enei-dialog-link__display]').value.trim()
+            if (!link) {
+                return
+            }
+            if (!display) {
+                display = link
+            }
+            createLink(this.editor, link, display, display, "_blank")
         })
 
         addEvent("image", () => {
@@ -488,8 +523,10 @@ export class EneiEditor {
             alert(`Block not committed!`)
             return
         }
-
-        this.saveBlock(id, content)
+        const result = await res.json()
+        if (result.includes(id)) {
+            this.saveBlock(id, content)
+        }
     }
 
     saveBlocks(){
@@ -532,7 +569,7 @@ export class EneiEditor {
         }
 
         data[id] = content.trim()
-        storage.setItem('ENEI', data)
+        storage.setItem('ENEI', JSON.stringify(data))
     }
 }
 

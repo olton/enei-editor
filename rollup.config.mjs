@@ -52,6 +52,7 @@ export default [
                 format: 'iife',
                 sourcemap,
                 banner,
+                name: "eneiEditor",
                 plugins: [
                     terser()
                 ]
