@@ -2,6 +2,7 @@ import {nodeResolve} from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import terser from '@rollup/plugin-terser'
 import replace from '@rollup/plugin-replace'
+import strip from '@rollup/plugin-strip';
 import progress from 'rollup-plugin-progress';
 import postcss from 'rollup-plugin-postcss'
 import autoprefixer from "autoprefixer"
@@ -28,6 +29,9 @@ export default [
         plugins: [
             progress({
                 clearLine: true,
+            }),
+            strip({
+                functions: ['console.log']
             }),
             replace({
                 preventAssignment: true,
