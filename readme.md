@@ -2,7 +2,7 @@
 
 Enei Editor - InPlace html editor for ENEI CMS.
 
-![img.png](img.webp)
+![img.png](img.png)
 
 ## Install
 
