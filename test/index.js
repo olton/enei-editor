@@ -1,5 +1,6 @@
-// import "./index.less"
+import {createEneiEditor} from "../src";
+import "./index.less"
 
-eneiEditor.createEneiEditor({
+createEneiEditor({
     shortcut: "alt+ctrl+e"
 })
