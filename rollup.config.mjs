@@ -30,9 +30,9 @@ export default [
             progress({
                 clearLine: true,
             }),
-            strip({
-                functions: ['console.log']
-            }),
+            // strip({
+            //     functions: ['console.log']
+            // }),
             replace({
                 preventAssignment: true,
             }),

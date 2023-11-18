@@ -118,7 +118,10 @@ ${DLG_LINK}
 <div class="enei__actions">
     <button class="enei__button js-enei-ok">Save</button>
     <button class="enei__button js-enei-cancel">Cancel</button>
-    <a href="https://github.com/olton/enei-editor" target="_blank" class="enei__button js-enei-github" style="background-color: transparent; margin-left: auto"><span class="ei-github"></span></a>
+    <div style="margin-left: auto;">
+        <span style="font-size: 10px;">v0.1.2</span>
+        <a href="https://github.com/olton/enei-editor" target="_blank" class="enei__button js-enei-github" style="background-color: transparent;"><span class="ei-github"></span></a>
+    </div>
 </div>
 `
 
@@ -141,7 +144,6 @@ export class EneiEditor {
     }
 
     createEditor(){
-        console.log("Create Editor")
         this.editorContainer = document.createElement("div")
         this.editorContainer.className = 'enei__editor'
         this.editorContainer.innerHTML = EDITOR_HTML
@@ -149,28 +151,30 @@ export class EneiEditor {
     }
 
     createOverlay(){
-        console.log("Create Overlay")
         this.overlay = document.createElement("div")
         this.overlay.classList.add("enei__overlay")
         this.body.append(this.overlay)
         this.overlay.addEventListener('wheel', e => {
             e.preventDefault()
             e.stopPropagation()
-        }, {passive: true})
+        })
     }
 
     openEditor(){
         const self = this, o = this.options, forElement = this.current
-        const rect = forElement.getBoundingClientRect()
+        let {top, left, width} = forElement.getBoundingClientRect()
+        if (top < 0) {
+            top = 112
+        }
         this.createOverlay()
         this.createEditor()
         this.originalContent = forElement.innerHTML
         this.linkDialog = document.querySelector("#enei-dialog-link")
         this.content = this.editorContainer.querySelector(".enei__text")
         this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
-        this.editorContainer.style.top = `${rect.top - 56}px`
-        this.editorContainer.style.left = `${rect.left}px`
-        this.editorContainer.style.width = `${rect.width}px`
+        this.editorContainer.style.top = `${top - 56}px`
+        this.editorContainer.style.left = `${left}px`
+        this.editorContainer.style.width = `${width}px`
         this.editorContainer.style.maxHeight = `${o.maxHeight}px`
         this.editor = new Editor(this.content, {
             plugins: [
@@ -473,22 +477,30 @@ export class EneiEditor {
 
             // event.preventDefault()
         })
+    }
 
-        const elements = document.querySelectorAll(ENEI_EDITOR_TARGET_CLASS)
+    switchMode(){
+        const self = this
 
-        const clickHandler = function(event) {
+        this.body.classList.toggle(ENEI_EDITOR_MODE_CLASS)
+
+        const clickHandler = function() {
             if(!self.inEditMode()) return
             self.current = this
             self.openEditor()
         }
 
-        elements.forEach(el => {
-            el.addEventListener("click", clickHandler)
-        })
-    }
+        const elements = document.querySelectorAll(ENEI_EDITOR_TARGET_CLASS)
 
-    switchMode(){
-        this.body.classList.toggle(ENEI_EDITOR_MODE_CLASS)
+        if (this.inEditMode()) {
+            elements.forEach(el => {
+                el.addEventListener("click", clickHandler)
+            })
+        } else {
+            elements.forEach(el => {
+                el.removeEventListener("click", clickHandler)
+            })
+        }
     }
 
     inEditMode(){
