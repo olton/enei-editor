@@ -7,9 +7,8 @@ import progress from 'rollup-plugin-progress';
 import postcss from 'rollup-plugin-postcss'
 import autoprefixer from "autoprefixer"
 
-const
-    dev = (process.env.NODE_ENV !== 'production'),
-    sourcemap = dev
+const production = !process.env.ROLLUP_WATCH
+const sourcemap = !production
 
 const banner = `
 /*!
@@ -30,9 +29,9 @@ export default [
             progress({
                 clearLine: true,
             }),
-            // strip({
-            //     functions: ['console.log']
-            // }),
+            strip({
+                functions: production ? ['console.log'] : []
+            }),
             replace({
                 preventAssignment: true,
             }),
