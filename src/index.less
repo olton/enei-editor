@@ -102,6 +102,10 @@
         background-color: #468cff;
         color: #fff;
     }
+    &.success-color {
+        background-color: #198a00;
+        color: #fff;
+    }
 }
 
 .enei__toolbar {
@@ -120,6 +124,10 @@
             background-color: #acacac;
             color: #fff;
         }
+        &:disabled {
+            color: #b7b7b7;
+            cursor: default;
+        }
     }
 
     .enei__tool-divider {
@@ -130,6 +138,11 @@
 }
 
 .enei-dialog {
+    header {
+        h3 {
+            margin: 4px 0;
+        }
+    }
     label, input {
         width: 100%;
         font-size: 14px;
@@ -145,7 +158,7 @@
             border-color: #b7b7b7;
         }
     }
-    menu {
+    .enei-dialog__actions {
         margin-top: 10px;
     }
 }

@@ -66,17 +66,18 @@ const DLG_LINK = `
         <main>    
             <div>
                 <label>Web Address (URL)</label>
-                <input type="url" name="enei-dialog-link__url">
+                <input type="url" name="enei-dialog-link__url" placeholder="https://domain.com">
             </div>
-            <div>
+            
+            <div style="margin-top: 10px">
                 <label>Display as</label>
                 <input type="text" name="enei-dialog-link__display">
             </div>
         </main>
-        <menu>
+        <div class="enei-dialog__actions">
             <button class="enei__button js-enei-dialog-link__button-ok" type="submit" value="ok">OK</button>
             <button class="enei__button js-enei-dialog-link__button-cancel" type="reset" value="cancel">Cancel</button>
-        </menu>
+        </div>
     </form>
 </dialog>
 `
@@ -173,7 +174,6 @@ export class EneiEditor {
         this.overlay.classList.add("enei__overlay")
         this.body.append(this.overlay)
         this.overlay.addEventListener('wheel', e => {
-            // e.preventDefault()
             e.stopPropagation()
         })
     }
@@ -191,7 +191,6 @@ export class EneiEditor {
         this.linkDialog = document.querySelector("#enei-dialog-link")
         this.content = this.editorContainer.querySelector(".enei__text")
         this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
-        this.content.style.fontSize = css(forElement, "font-size")
         this.editorContainer.style.top = `${top}px`
         this.editorContainer.style.left = `${left}px`
         this.editorContainer.style.width = `${width}px`
@@ -204,6 +203,7 @@ export class EneiEditor {
                 new ImageEdit(),
             ],
             initialContent: this.originalContent,
+            inDarkMode: false,
         })
 
         const updateEditorHeight = () => {
@@ -246,8 +246,6 @@ export class EneiEditor {
             setButtonState('code', isCodeBlock || isCodeInline)
             setButtonState('ltr', direction === 'ltr')
             setButtonState('rtl', direction === 'rtl')
-            setButtonState('undo', canUndo)
-            setButtonState('redo', canRedo)
             setButtonState('p-left', ['start', 'left'].includes(textAlign))
             setButtonState('p-center', textAlign === 'center')
             setButtonState('p-right', ['end', 'right'].includes(textAlign))
@@ -255,6 +253,9 @@ export class EneiEditor {
             setButtonState('list-bull', isBullet)
 
             button('unlink').disabled = !canUnlink
+            button('undo').disabled = !canUndo
+            button('redo').disabled = !canRedo
+            button('revert').disabled = !(canRedo || canUndo)
 
             button('heading').innerHTML = headingLevel > 0 ? `H${headingLevel}` : "R"
         }
@@ -264,7 +265,7 @@ export class EneiEditor {
         })
 
         const focus = () => {
-            this.editor.focus()
+            this.content.focus()
             updateEditorHeight()
             updateButtonState(getFormatState(this.editor))
         }
