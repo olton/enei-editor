@@ -3,9 +3,11 @@ import commonjs from '@rollup/plugin-commonjs'
 import terser from '@rollup/plugin-terser'
 import replace from '@rollup/plugin-replace'
 import strip from '@rollup/plugin-strip';
-import progress from 'rollup-plugin-progress';
+import progress from 'rollup-plugin-progress'
 import postcss from 'rollup-plugin-postcss'
 import autoprefixer from "autoprefixer"
+import pkg from './package.json' assert { type: 'json' };
+
 
 const production = !process.env.ROLLUP_WATCH
 const sourcemap = !production
@@ -34,6 +36,7 @@ export default [
             }),
             replace({
                 preventAssignment: true,
+                __version__: pkg.version
             }),
             postcss({
                 extract: false,

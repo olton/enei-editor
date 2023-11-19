@@ -24,6 +24,8 @@ import {
 import "./index.less"
 import "./icons.less"
 
+const BUILD_VERSION = "__version__"
+
 const isObject = item => (item && typeof item === 'object' && !Array.isArray(item))
 const merge = (target, ...sources) => {
     if (!sources.length) return target;
@@ -43,10 +45,12 @@ const merge = (target, ...sources) => {
     return merge(target, ...sources);
 }
 
+const css = (el, prop) => window.getComputedStyle(el, null)[prop]
+
 const EditorDefaultOptions = {
     shortcut: "alt+ctrl+k",
     serverEndpoint: '',
-    maxHeight: 300,
+    maxHeight: 0,
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
@@ -133,7 +137,7 @@ ${DLG_LINK}
     <button class="enei__button js-enei-ok">Save</button>
     <button class="enei__button js-enei-cancel">Cancel</button>
     <div style="margin-left: auto;">
-        <span style="font-size: 10px;">v0.1.3</span>
+        <span style="font-size: 10px;">v${BUILD_VERSION}</span>
         <a href="https://github.com/olton/enei-editor" target="_blank" class="enei__button js-enei-github" style="background-color: transparent;"><span class="ei-github"></span></a>
     </div>
 </div>
@@ -169,7 +173,7 @@ export class EneiEditor {
         this.overlay.classList.add("enei__overlay")
         this.body.append(this.overlay)
         this.overlay.addEventListener('wheel', e => {
-            e.preventDefault()
+            // e.preventDefault()
             e.stopPropagation()
         })
     }
@@ -177,19 +181,21 @@ export class EneiEditor {
     openEditor(){
         const self = this, o = this.options, forElement = this.current
         let {top, left, width} = forElement.getBoundingClientRect()
-        if (top < 0) {
+        if (top < 56) {
             top = 112
         }
+        top -= 56
         this.createOverlay()
         this.createEditor()
         this.originalContent = forElement.innerHTML
         this.linkDialog = document.querySelector("#enei-dialog-link")
         this.content = this.editorContainer.querySelector(".enei__text")
         this.toolbar = this.editorContainer.querySelector(".enei__toolbar")
-        this.editorContainer.style.top = `${top - 56}px`
+        this.content.style.fontSize = css(forElement, "font-size")
+        this.editorContainer.style.top = `${top}px`
         this.editorContainer.style.left = `${left}px`
         this.editorContainer.style.width = `${width}px`
-        this.editorContainer.style.maxHeight = `${o.maxHeight}px`
+        this.editorContainer.style.maxHeight = `${o.maxHeight || window.innerHeight - top - 56}px`
         this.editor = new Editor(this.content, {
             plugins: [
                 new ContentEdit(),
@@ -208,8 +214,6 @@ export class EneiEditor {
             /*
             * {
                 "isMultilineSelection": false,
-                "headingLevel": 0,
-                "headerLevel": 0,
                 "canAddImageAltText": false,
                 "isInTable": false,
                 "tableFormat": {},
@@ -259,15 +263,13 @@ export class EneiEditor {
             this.content.addEventListener(ev, () => {updateButtonState(getFormatState(this.editor))})
         })
 
-        this.content.focus()
-        updateEditorHeight()
-        updateButtonState(getFormatState(this.editor))
-
         const focus = () => {
-            this.content.focus()
+            this.editor.focus()
             updateEditorHeight()
             updateButtonState(getFormatState(this.editor))
         }
+
+        focus()
 
         this.content.addEventListener("input", () => {
             updateEditorHeight()
