@@ -1,6 +1,6 @@
 {
   "name": "@olton/enei-editor",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "The content editor for enei cms",
   "main": "dist/enei-editor.cjs.js",
   "module": "dist/enei-editor.esm.js",
@@ -8,8 +8,8 @@
   "scripts": {
     "start": "vite",
     "clear": "shx rm -rf dist/* lib/*",
-    "build": "npm run clear && npm install && rollup -c",
-    "watch": "npm run clear && npm install && rollup -c -w",
+    "build": "npm run clear && rollup -c",
+    "watch": "npm run clear && rollup -c -w",
     "dev": "npm-run-all --parallel watch start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,6 +25,7 @@
   "homepage": "https://github.com/olton/enei-editor#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-strip": "^3.0.4",

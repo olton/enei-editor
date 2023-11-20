@@ -26,11 +26,6 @@
     right: 0;
     bottom: 0;
     background: rgba(0,0,0,.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Roboto", serif;
-    box-sizing: border-box;
 
     * {
         box-sizing: border-box;
@@ -48,7 +43,6 @@
     .enei__text {
         margin: 4px;
         padding: 4px;
-        //max-height: 400px;
         overflow: auto;
 
         &[contenteditable=true] {
@@ -58,9 +52,10 @@
     }
 
     .enei__actions {
+        font-family: "Roboto", serif;
         display: flex;
         flex-flow: row nowrap ;
-        justify-content: start;
+        justify-content: flex-start;
         padding: 0 4px 4px 2px;
         align-items: center;
 
@@ -106,6 +101,10 @@
         background-color: #198a00;
         color: #fff;
     }
+    &:disabled {
+        color: #b7b7b7;
+        cursor: default;
+    }
 }
 
 .enei__toolbar {
@@ -113,6 +112,7 @@
     flex-flow: row wrap;
     padding-left: 2px;
     margin: 4px 2px 2px 2px;
+    font-family: "Roboto", serif;
 
     .enei__tool-button {
         width: 24px;
@@ -177,6 +177,7 @@
         border: 1px solid #efefef;
         box-shadow: 4px 4px 10px rgba(0,0,0,.4);
         display: none;
+        font-family: "Roboto", serif;
 
         li {
             white-space: nowrap;

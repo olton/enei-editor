@@ -21,10 +21,18 @@ import {
     setHeadingLevel,
 } from 'roosterjs';
 
+import EN_US from "./i18n/en-US"
+import UK_UA from "./i18n/uk-UA"
+
 import "./index.less"
 import "./icons.less"
 
 const BUILD_VERSION = "__version__"
+
+const locales = {
+    "en-US": EN_US,
+    "uk-UA": UK_UA,
+}
 
 const isObject = item => (item && typeof item === 'object' && !Array.isArray(item))
 const merge = (target, ...sources) => {
@@ -51,6 +59,7 @@ const EditorDefaultOptions = {
     shortcut: "alt+ctrl+k",
     serverEndpoint: '',
     maxHeight: 0,
+    locale: "en-US"
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
@@ -99,14 +108,14 @@ ${DLG_LINK}
     <div class="enei__dropdown">
         <button class="enei__tool-button js-enei-heading" title="Heading">R</button>
         <ul>
-            <li value="1">Heading 1</li>
-            <li value="2">Heading 2</li>
-            <li value="3">Heading 3</li>
-            <li value="4">Heading 4</li>
-            <li value="5">Heading 5</li>
-            <li value="6">Heading 6</li>
+            <li class="js-enei-heading1" value="1">Heading 1</li>
+            <li class="js-enei-heading2" value="2">Heading 2</li>
+            <li class="js-enei-heading3" value="3">Heading 3</li>
+            <li class="js-enei-heading4" value="4">Heading 4</li>
+            <li class="js-enei-heading5" value="5">Heading 5</li>
+            <li class="js-enei-heading6" value="6">Heading 6</li>
             <li class="divider"></li>
-            <li value="0">Regular Text</li>
+            <li class="js-enei-regular" value="0">Regular Text</li>
         </ul>
     </div>
 
@@ -135,7 +144,7 @@ ${DLG_LINK}
 </div>
 <div class="enei__text"></div>
 <div class="enei__actions">
-    <button class="enei__button js-enei-ok">Save</button>
+    <button class="enei__button js-enei-save">Save</button>
     <button class="enei__button js-enei-cancel">Cancel</button>
     <div style="margin-left: auto;">
         <span style="font-size: 10px;">v${BUILD_VERSION}</span>
@@ -154,19 +163,13 @@ export class EneiEditor {
     toolbar = null
     options = {}
     originalContent = null
+    canSave = false
 
     constructor(options) {
         this.options = merge({}, EditorDefaultOptions, options)
         this.addEvents()
         this.body = document.querySelector("body")
         this.restoreBlocks()
-    }
-
-    createEditor(){
-        this.editorContainer = document.createElement("div")
-        this.editorContainer.className = 'enei__editor'
-        this.editorContainer.innerHTML = EDITOR_HTML
-        this.overlay.append(this.editorContainer)
     }
 
     createOverlay(){
@@ -176,6 +179,18 @@ export class EneiEditor {
         this.overlay.addEventListener('wheel', e => {
             e.stopPropagation()
         })
+    }
+
+    createEditor(){
+        this.editorContainer = document.createElement("div")
+        this.editorContainer.className = 'enei__editor'
+        this.editorContainer.innerHTML = EDITOR_HTML
+        for (let key in locales[this.options.locale]) {
+            this.editorContainer.querySelector(`.js-enei-${key}`).setAttribute("title", locales[this.options.locale][key])
+        }
+        this.editorContainer.querySelector(`.js-enei-save`).innerHTML = locales[this.options.locale]["save"]
+        this.editorContainer.querySelector(`.js-enei-cancel`).innerHTML = locales[this.options.locale]["cancel"]
+        this.overlay.append(this.editorContainer)
     }
 
     openEditor(){
@@ -230,7 +245,7 @@ export class EneiEditor {
                 "zoomScale": 1
             }
             * */
-            const button = name => this.toolbar.querySelector(`.js-enei-${name}`)
+            const button = name => this.editorContainer.querySelector(`.js-enei-${name}`)
             const setButtonState = (name, state) => button(name).classList[state ? 'add' : 'remove']('active')
 
             const {isBold, isItalic, isUnderline, isStrikeThrough, isSubscript, isSuperscript, isBlockQuote,
@@ -258,6 +273,10 @@ export class EneiEditor {
             button('revert').disabled = !(canRedo || canUndo)
 
             button('heading').innerHTML = headingLevel > 0 ? `H${headingLevel}` : "R"
+            button('heading').setAttribute("title", headingLevel === 0 ? locales[this.options.locale]["regular"] : locales[this.options.locale][`heading${headingLevel}`])
+
+            this.canSave = canRedo || canUndo
+            button('save').disabled = !this.canSave
         }
 
         ;["keyup", "mouseup", "input", "click", "contentchanged"].forEach( ev => {
@@ -282,7 +301,7 @@ export class EneiEditor {
             this.closeEditor()
         })
 
-        addEvent('ok', async () => {
+        addEvent('save', async () => {
             await this.saveEditor()
         })
 
@@ -465,16 +484,19 @@ export class EneiEditor {
     async saveEditor(){
         const newContent = this.content.innerHTML
         const forElement = this.current
-        forElement.innerHTML = newContent
-        const id = forElement.getAttribute('enei')
-        const result = this.options.serverEndpoint ? await this.commitBlock(id, newContent) : id
-        if (!result) {
-            this.current.innerHTML = this.originalContent
+        if (this.canSave) {
+            forElement.innerHTML = newContent
+            const id = forElement.getAttribute('enei')
+            const result = this.options.serverEndpoint ? await this.commitBlock(id, newContent) : id
+            if (!result) {
+                this.current.innerHTML = this.originalContent
+            }
         }
         this.closeEditor()
     }
 
     closeEditor(){
+        this.canSave = false
         this.editor.dispose()
         this.overlay.remove()
     }
