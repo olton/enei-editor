@@ -3,5 +3,5 @@ import "./index.less"
 
 createEneiEditor({
     shortcut: "alt+ctrl+e",
-    locale: "uk-UA"
+    // locale: "uk-UA"
 })

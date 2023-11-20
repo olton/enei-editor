@@ -59,7 +59,7 @@ const EditorDefaultOptions = {
     shortcut: "alt+ctrl+k",
     serverEndpoint: '',
     maxHeight: 0,
-    locale: "en-US"
+    locale: 'en-US'
 }
 
 const ENEI_EDITOR_MODE_CLASS = 'enei_editor_mode'
@@ -181,15 +181,24 @@ export class EneiEditor {
         })
     }
 
+    getLocale(){
+        try {
+            return document.querySelector('html').getAttribute('lang') || 'en-US'
+        } catch (e) {
+            return 'en-US'
+        }
+    }
+
     createEditor(){
+        const locale = locales[this.options.locale]
         this.editorContainer = document.createElement("div")
         this.editorContainer.className = 'enei__editor'
         this.editorContainer.innerHTML = EDITOR_HTML
-        for (let key in locales[this.options.locale]) {
-            this.editorContainer.querySelector(`.js-enei-${key}`).setAttribute("title", locales[this.options.locale][key])
+        for (let key in locale) {
+            this.editorContainer.querySelector(`.js-enei-${key}`).setAttribute("title", locale[key])
         }
-        this.editorContainer.querySelector(`.js-enei-save`).innerHTML = locales[this.options.locale]["save"]
-        this.editorContainer.querySelector(`.js-enei-cancel`).innerHTML = locales[this.options.locale]["cancel"]
+        this.editorContainer.querySelector(`.js-enei-save`).innerHTML = locale["save"]
+        this.editorContainer.querySelector(`.js-enei-cancel`).innerHTML = locale["cancel"]
         this.overlay.append(this.editorContainer)
     }
 
