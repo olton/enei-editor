@@ -496,8 +496,10 @@ export class EneiEditor {
         if (this.canSave) {
             forElement.innerHTML = newContent
             const id = forElement.getAttribute('enei')
-            const result = this.options.serverEndpoint ? await this.commitBlock(id, newContent) : id
-            if (!result) {
+            const result = this.options.serverEndpoint ? await this.commitBlock(id, newContent) : [id]
+            if (result && result.includes(id)) {
+                this.saveBlock(id, newContent)
+            } else {
                 this.current.innerHTML = this.originalContent
             }
         }
@@ -587,12 +589,7 @@ export class EneiEditor {
             alert(`Block not committed!`)
             return null
         }
-        const result = await res.json()
-        if (result.includes(id)) {
-            this.saveBlock(id, content)
-            return id
-        }
-        return null
+        return await res.json()
     }
 
     saveBlocks(){

@@ -1,6 +1,6 @@
 {
   "name": "@olton/enei-editor",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The content editor for enei cms",
   "main": "dist/enei-editor.cjs.js",
   "module": "dist/enei-editor.esm.js",
